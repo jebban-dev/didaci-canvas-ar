@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AR Perro - didaci canvas</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <style>
+        body { margin:0; overflow:hidden; font-family:sans-serif; }
+        #msg { position:fixed; top:10px; left:50%; transform:translateX(-50%); background:rgba(4,91,193,0.95); color:white; padding:12px 24px; border-radius:10px; font-size:15px; z-index:1000; opacity:0; transition:opacity .5s; pointer-events:none; max-width:90%; text-align:center; }
+        #msg.visible { opacity:1; }
+        #btn { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); padding:14px 28px; background:#FFD700; color:#333; border:none; border-radius:25px; font-weight:bold; cursor:pointer; box-shadow:0 6px #b89f00; z-index:1000; display:none; font-size:16px; }
+        #btn:active { box-shadow:0 2px #b89f00; transform:translateX(-50%) translateY(4px); }
+        #loading { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); color:white; font-size:18px; z-index:1001; background:rgba(0,0,0,0.7); padding:20px; border-radius:10px; }
+    </style>
+</head>
+<body>
+    <div id="loading">Cargando tu perrito 3D...</div>
+    <div id="msg">Apunta al marcador HIRO...</div>
+    <button id="btn" onclick="showCoupon()">¡Reclamar Cupón!</button>
+
+    <a-scene embedded arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best;">
+        <a-marker preset="hiro" registerevents>
+            <a-entity cursor="fuse:false; rayOrigin:mouse" raycaster="objects: .clickable"></a-entity>
+
+            <!-- TU PERRO - TAMAÑO CORREGIDO -->
+            <a-entity 
+                id="perro" 
+                class="clickable"
+                gltf-model="#perro-glb" 
+                scale="0.1 0.1 0.1" 
+                position="0 0.05 0" 
+                rotation="0 180 0" 
+                interactive-pet>
+            </a-entity>
+        </a-marker>
+
+        <!-- MODELO CON MÁS TIEMPO -->
+        <a-assets timeout="90000">
+            <a-asset-item id="perro-glb" src="https://ijebbansmx2n25-lgtm.github.io/didaci-canvas-ar/Perro.glb"></a-asset-item>
+        </a-assets>
+
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+        let dancing = false;
+        let loaded = false;
+        const msg = document.getElementById('msg');
+        const btn = document.getElementById('btn');
+        const loading = document.getElementById('loading');
+        const perro = document.getElementById('perro');
+
+        perro.addEventListener('model-loaded', () => {
+            loaded = true;
+            loading.style.display = 'none';
+            console.log('Perro cargado - tamaño ajustado');
+        });
+
+        perro.addEventListener('model-error', () => {
+            loading.innerHTML = 'Error: modelo grande<br>Espera o usa WiFi';
+        });
+
+        AFRAME.registerComponent('interactive-pet', {
+            init: function () {
+                const el = this.el;
+                const marker = el.parentNode;
+
+                marker.addEventListener('markerFound', () => {
+                    if (!loaded) return;
+                    msg.innerText = '¡Toca al perrito!';
+                    msg.classList.add('visible');
+                    btn.style.display = 'none';
+                    dancing = false;
+                });
+
+                marker.addEventListener('markerLost', () => {
+                    msg.innerText = 'Buscando...';
+                    msg.classList.remove('visible');
+                });
+
+                el.addEventListener('click', () => {
+                    if (dancing || !loaded) return;
+                    dancing = true;
+
+                    el.setAttribute('animation__jump', {property:'position', to:'0 0.15 0', dur:300, dir:'alternate', loop:3, easing:'easeOutBounce'});
+                    el.setAttribute('animation__spin', {property:'rotation', to:'0 180 720', dur:1500, easing:'linear'});
+
+                    msg.innerText = '¡Bailando!';
+                    setTimeout(() => {
+                        btn.style.display = 'block';
+                        msg.innerText = '¡Toca para tu cupón!';
+                    }, 1200);
+                });
+            }
+        });
+
+        function showCoupon() {
+            btn.style.display = 'none';
+            msg.style.background = 'rgba(255,69,0,0.95)';
+            msg.innerText = 'CUPÓN: 20% OFF\n¡Gracias por jugar!';
+        }
+    </script>
+</body>
+</html>
